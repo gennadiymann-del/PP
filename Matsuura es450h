@@ -2031,7 +2031,10 @@ endp
 	endw
 
 	; Убираем “шум” (оставляем 0.001 градуса)
-	nNewBpos = round(nNewBpos*1000.)/1000.
+	; В GPPL round() надежнее работает с переменной, а не с выражением
+	nNewBpos = nNewBpos * 1000.
+	nNewBpos = round(nNewBpos)
+	nNewBpos = nNewBpos / 1000.
 
 	if abs(nNewBpos - nPR1pos) > 0.0005
 		nR1pos = nNewBpos
