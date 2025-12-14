@@ -1004,6 +1004,12 @@ endp
 	call @usr_HSM_mode
 	bfirst_rapid = true
 	iPworkoffset = iWorkoffset
+	; ---- 4x
+	; Force B output at the start of every operation (job),
+	; even when consecutive jobs use the same B angle.
+	; This prevents “missing” B words that later look like the order changed.
+	nPR1pos = 9999
+	; ---- 4x
     if 	bStopM00sametool eq true
         bTlchg = true
         bStopM00sametool = false
@@ -2006,32 +2012,35 @@ endp
 ;-------------------
 
 @usr_r1pos_calc
- ; Простой и надежный вариант
-    local numeric nNewBpos
-    
-    {nl,'DEBUG: rotate_angle_y=' rotate_angle_y}
-    
-    ; ВАЖНО: Всегда используем rotate_angle_y как абсолютный угол
-    ; (предполагаем что SolidCAM передает абсолютные значения)
-    
-    nNewBpos = rotate_angle_y * iR1dir  ; Без минуса!
-    
-    ; Если нужно инвертировать знак (зависит от станка)
-    ; nNewBpos = -rotate_angle_y * iR1dir
-    
-    {nl,'DEBUG: Calculated B=' nNewBpos}
-    
-    ; Для точности округляем до 1 градуса
-    nNewBpos = round(nNewBpos)
-    
-    if abs(nNewBpos - nPR1pos) > 0.001
-        nR1pos = nNewBpos
-        change(nR1pos) = TRUE
-    else
-        change(nR1pos) = FALSE
-    endif
-    
-    nPR1pos = nNewBpos
+	; Расчет положения 4-й оси (B) для индексной/4x обработки.
+	; Важно:
+	; - Не пишем отладочные строки в УП.
+	; - Нормализуем угол, чтобы эквивалентные представления (например 270/-90)
+	;   не приводили к “перескокам” и кажущейся смене порядка B-углов.
+	local numeric nNewBpos
+
+	; Берем абсолютный угол от CAM и учитываем направление оси
+	nNewBpos = rotate_angle_y * iR1dir
+
+	; Нормализация в диапазон [-180..180]
+	while nNewBpos > 180
+		nNewBpos = nNewBpos - 360
+	endw
+	while nNewBpos < -180
+		nNewBpos = nNewBpos + 360
+	endw
+
+	; Убираем “шум” (оставляем 0.001 градуса)
+	nNewBpos = round(nNewBpos*1000.)/1000.
+
+	if abs(nNewBpos - nPR1pos) > 0.0005
+		nR1pos = nNewBpos
+		change(nR1pos) = TRUE
+	else
+		change(nR1pos) = FALSE
+	endif
+
+	nPR1pos = nNewBpos
 endp
 @usr_4x_index
 	; Handle 4x indexing (Rotary moves between operations)
