@@ -384,9 +384,9 @@ endp
 	nG187_E_gpp     = 0
 	; ---- 4x
 	nR1pos          = 9999
-	change(cR1)     = false
-	change(cR2)     = false
-	change(cWo)     = false
+	change(cR1)     = FALSE
+	change(cR2)     = FALSE
+	change(cWo)     = FALSE
 	Rotclmpunclmp = Rot_Clamp
 ;	iFeedType       = 94
 ;	change(iFeedType)	= false
@@ -624,7 +624,7 @@ endp
 		endif
 	endif
 	if i4xIndexMode eq 1
-		change(iWorkoffset) = true
+		change(iWorkoffset) = TRUE
 	endif
 endp
 
@@ -793,10 +793,10 @@ endp
 		iMotionmode = 9999
 		iDiametercomp = 40
 		if !bSimpleformat
-			change(iAbsincmode) = true
-			change(iWorkoffset) = true
+			change(iAbsincmode) = TRUE
+			change(iWorkoffset) = TRUE
 		endif
-		change(iDiameteroffset) = false
+		change(iDiameteroffset) = FALSE
 		iHeightcomp = 9999
 		iDrillmode = 9999
 		iCoolantM1      = iCoolantM1OFF
@@ -810,21 +810,21 @@ endp
 	else
 		if bSafetyprep
 			call @machine_plane
-			change(iMplane) = true
-			change(iAbsincmode) = true
-			change(iDiametercomp) = true
+			change(iMplane) = TRUE
+			change(iAbsincmode) = TRUE
+			change(iDiametercomp) = TRUE
 			iDrillmode = 9999
 			bSafetyprep = false
 		else
 			iMotionmode = 9999
 			if bWorkoffsettc
-				change(iWorkoffset) = true
+				change(iWorkoffset) = TRUE
 			endif
 			if !bSimpleformat
-				change(iAbsincmode) = true
+				change(iAbsincmode) = TRUE
 			endif
 			iDiametercomp = 40
-			change(iDiameteroffset) = false
+			change(iDiameteroffset) = FALSE
 			iHeightcomp = 9999
 			iDrillmode = 9999
 			iCoolantM1      = iCoolantM1OFF
@@ -835,7 +835,7 @@ endp
 			iCoolantM6      = iCoolantM6OFF
 			iCoolantM7      = iCoolantM7OFF
 			iCoolantM8 = iCoolantM8OFF
-			change(nRapidfeed) = true
+			change(nRapidfeed) = TRUE
 			; ---- 4x
 			nR1pos = 9999
             nPR1pos = 9999
@@ -960,17 +960,17 @@ endp
 	if change(iG187_P_gpp) or change (nG187_E_gpp)
 		if change(nG187_E_gpp) and nG187_E_gpp eq 0
 			{nb,'G187 '}
-			change(nG187_E_gpp) = false
-			change(iG187_P_gpp) = false
+			change(nG187_E_gpp) = FALSE
+			change(iG187_P_gpp) = FALSE
 			if (iG187_P_gpp) ne 2
-				change(iG187_P_gpp) = true
+				change(iG187_P_gpp) = TRUE
 			endif
 		endif
 		if change(iG187_P_gpp) or change (nG187_E_gpp)
 			{nb,'G187 '['P'iG187_P_gpp' ']['E'nG187_E_gpp' ']}
 		endif
-		change(iG187_P_gpp) = false
-		change(nG187_E_gpp) = false
+		change(iG187_P_gpp) = FALSE
+		change(nG187_E_gpp) = FALSE
 	endif
 endp
 
@@ -989,9 +989,9 @@ endp
 			{nb, cCb,job_name,cCe}
 			if iPworkoffset ne iWorkoffset
 				call @usr_4x_index
-				change(iWorkoffset) = true
+				change(iWorkoffset) = TRUE
 			else
-				change(iWorkoffset) = false
+				change(iWorkoffset) = FALSE
 			endif
 		endif
 	endif
@@ -1091,7 +1091,7 @@ endp
 			Rotclmpunclmp = Rot_Unclamp
 			if change(Rotclmpunclmp) and change(nr1pos)
 				{nb, 'M'Rotclmpunclmp}
-				change(Rotclmpunclmp) = false
+				change(Rotclmpunclmp) = FALSE
 			endif
 ;			Rot_Clamp
 ;			Rot_Unclamp
@@ -1106,7 +1106,7 @@ endp
 			Rotclmpunclmp = Rot_Clamp
 			if change(Rotclmpunclmp)
 				{nb, 'M'Rotclmpunclmp}
-				change(Rotclmpunclmp) = false
+				change(Rotclmpunclmp) = FALSE
 			endif
 ;			Rot_Clamp
 ;			Rot_Unclamp
@@ -1164,19 +1164,19 @@ endp
 		endif
 	endif
 	if change(iMotionmode)
-		change(iMotionmode) = false
+		change(iMotionmode) = FALSE
 	endif
 	if change(iMplane)
-		change(iMplane) = false
+		change(iMplane) = FALSE
 	endif
 	if change(iWorkoffset)
-		change(iWorkoffset) = false
+		change(iWorkoffset) = FALSE
 	endif
 	if change(iAbsincmode)
-		change(iAbsincmode) = false
+		change(iAbsincmode) = FALSE
 	endif
 	if change(nRapidfeed)
-		change(nRapidfeed) = false
+		change(nRapidfeed) = FALSE
 	endif
 	if !bSyncdrapid
 		bFeedoutput        = true
@@ -1216,9 +1216,9 @@ endp
 			feed = feed_rate
 		endif
 		if feed ne prevFeed
-			change(feed) = true
+			change(feed) = TRUE
 		else
-			change(feed) = false
+			change(feed) = FALSE
 		endif
 		iFeedType = 94
 	else
@@ -1226,23 +1226,23 @@ endp
 			if change(xpos) or change(ypos) or change(nr1pos)
 				iFeedType = 93  ;Inverse Feed
 				feed = inverse_feed
-				change(feed) = true
+				change(feed) = TRUE
 			else
 				iFeedType = 94
 				if change(iFeedType)
-					change(feed) = true
+					change(feed) = TRUE
 				endif
 			endif
 		else
 			iFeedType = 94
 			if change(iFeedType)
-				change(feed) = true
+				change(feed) = TRUE
 			endif
 		endif
 	endif
 	; ---- 4x
 	if bFeedoutput
-		change(feed) = true
+		change(feed) = TRUE
 		bFeedoutput  = false
 	endif
 	iMotionmode = 1
@@ -1255,24 +1255,24 @@ else
 endif
 	prevFeed = feed
 	if change(iMotionmode)
-		change(iMotionmode)     = false
+		change(iMotionmode)     = FALSE
 	endif
 	if change(iMplane)
-		change(iMplane)         = false
+		change(iMplane)         = FALSE
 	endif
 	if change(iDiametercomp)
-		change(iDiametercomp)   = false
+		change(iDiametercomp)   = FALSE
 	endif
 	if change(iWorkoffset)
-		change(iWorkoffset)     = false
+		change(iWorkoffset)     = FALSE
 	endif
 	if change(iAbsincmode)
-		change(iAbsincmode)     = false
+		change(iAbsincmode)     = FALSE
 	endif
 	if change(iDiameteroffset)
-		change(iDiameteroffset) = false
+		change(iDiameteroffset) = FALSE
 	endif
-	change(nRapidfeed)          = true
+	change(nRapidfeed)          = TRUE
 endp
 
 ; -----------
@@ -1300,7 +1300,7 @@ endp
 @usr_arc
 	; Handle output for arc movement (G02/G03)
 	if bFeedoutput
-		change(feed) = true
+		change(feed) = TRUE
 		bFeedoutput  = false
 	endif
 	if arc_direction eq CCW then
@@ -1371,24 +1371,24 @@ endp
 	endif
 	{['F'feed ' ']}
 	if change(iMotionmode)
-		change(iMotionmode)     = false
+		change(iMotionmode)     = FALSE
 	endif
 	if change(iMplane)
-		change(iMplane)         = false
+		change(iMplane)         = FALSE
 	endif
 	if change(iDiametercomp)
-		change(iDiametercomp)   = false
+		change(iDiametercomp)   = FALSE
 	endif
 	if change(iWorkoffset)
-		change(iWorkoffset)     = false
+		change(iWorkoffset)     = FALSE
 	endif
 	if change(iAbsincmode)
-		change(iAbsincmode)     = false
+		change(iAbsincmode)     = FALSE
 	endif
 	if change(iDiameteroffset)
-		change(iDiameteroffset) = false
+		change(iDiameteroffset) = FALSE
 	endif
-	change(nRapidfeed)          = true
+	change(nRapidfeed)          = TRUE
 	change(cWo) = FALSE ;!@#$%AC Fix for ChangeBit Intermittent problem
 	prevFeed = feed
 endp
@@ -1403,18 +1403,18 @@ endp
 	if side eq COMP_LEFT then
 		iDiametercomp = 41
 		if bDiameterCompOutputD
-			change(iDiameteroffset) = true
+			change(iDiameteroffset) = TRUE
 		endif
 	endif
 	if side eq COMP_RIGHT then
 		iDiametercomp = 42
 		if bDiameterCompOutputD
-			change(iDiameteroffset) = true
+			change(iDiameteroffset) = TRUE
 		endif
 	endif
 	if side eq COMP_OFF then
 		iDiametercomp = 40
-		change(iDiameteroffset) = false
+		change(iDiameteroffset) = FALSE
 	endif
 endp
 
@@ -1561,7 +1561,7 @@ endp
 	if drill_type eq G83
 		iDrillmode = 83
 		if P_Dwell eq 0
-			change(P_Dwell) = false
+			change(P_Dwell) = FALSE
 		endif
 		if Q_Peck eq 0
 			Q_Peck = down_step
@@ -1575,7 +1575,7 @@ endp
 	if drill_type eq G73
 		iDrillmode = 73
 		if P_Dwell eq 0
-			change(P_Dwell) = false
+			change(P_Dwell) = FALSE
 		endif
 		if Q_Peck eq 0
 			Q_Peck = down_step
@@ -1592,9 +1592,9 @@ endp
 			{nb,cG84p}
 		endif
 		if bG84spin
-			change(spin) = true
+			change(spin) = TRUE
 		else
-			change(spin) = false
+			change(spin) = FALSE
 		endif
 		if iG84feed eq 1
 			nG84feed = tool_drill_lead*spin
@@ -1610,9 +1610,9 @@ endp
 			{nb,cG84p}
 		endif
 		if bG84spin
-			change(spin) = true
+			change(spin) = TRUE
 		else
-			change(spin) = false
+			change(spin) = FALSE
 		endif
 		if iG84feed eq 1
 			nG84feed = tool_drill_lead*spin
@@ -1913,7 +1913,7 @@ endp
 		{ sHomeline}
 		iWorkOffset = sav_iWorkOffset
 		if iHomingmode eq 3
-			change(iWorkOffset) = false
+			change(iWorkOffset) = FALSE
 		endif
 		change(cWo) = FALSE ;!@#$%AC Fix for ChangeBit Intermittent problem
 	endif
@@ -2012,38 +2012,22 @@ endp
 ;-------------------
 
 @usr_r1pos_calc
-	; Расчет положения 4-й оси (B) для индексной/4x обработки.
-	; Важно:
-	; - Не пишем отладочные строки в УП.
-	; - Нормализуем угол, чтобы эквивалентные представления (например 270/-90)
-	;   не приводили к “перескокам” и кажущейся смене порядка B-углов.
+	; Расчет положения 4-й оси (B).
+	; Сделано в максимально “простом” стиле (как в рабочем посте Toyoda),
+	; чтобы не ловить ошибки компилятора на abs()/round()/сложных выражениях.
 	local numeric nNewBpos
 
-	; Берем абсолютный угол от CAM и учитываем направление оси
+	; Абсолютный угол от CAM + направление оси
 	nNewBpos = rotate_angle_y * iR1dir
+	nR1pos = nNewBpos
 
-	; Нормализация в диапазон [-180..180]
-	while nNewBpos > 180
-		nNewBpos = nNewBpos - 360
-	endw
-	while nNewBpos < -180
-		nNewBpos = nNewBpos + 360
-	endw
-
-	; Убираем “шум” (оставляем 0.001 градуса)
-	; В GPPL round() надежнее работает с переменной, а не с выражением
-	nNewBpos = nNewBpos * 1000.
-	nNewBpos = round(nNewBpos)
-	nNewBpos = nNewBpos / 1000.
-
-	if abs(nNewBpos - nPR1pos) > 0.0005
-		nR1pos = nNewBpos
+	if nPR1pos ne nR1pos
 		change(nR1pos) = TRUE
 	else
 		change(nR1pos) = FALSE
 	endif
 
-	nPR1pos = nNewBpos
+	nPR1pos = nR1pos
 endp
 @usr_4x_index
 	; Handle 4x indexing (Rotary moves between operations)
