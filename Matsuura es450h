@@ -847,7 +847,6 @@ endp
 endp
 
 @usr_heightcomp_on
-	{NB, ''}
 	; Handle line to turn on Height Compensation (Typically after tool change)
 	iHeightcomp = nHeightCompcode
 	if bHeightComp or bHeightCompOffset
@@ -1901,7 +1900,9 @@ endp
 		{ sHomeline}
 		iAbsincmode = 90
 		change(iAbsincmode) = TRUE
-		{NB, ''}
+		; Не печатаем пустую строку — вместо этого явно возвращаемся в G90
+		{nb}
+		call @usr_abs_inc_output
 	endif
 	if iHomingmode eq 3 or iHomingmode eq 4
 		if iWorkOffsetmode eq 1 or iWorkOffsetmode eq 3
@@ -1931,6 +1932,9 @@ endp
 		{ sHomeline}
 		iAbsincmode = 90
 		change(iAbsincmode) = TRUE
+		; Не печатаем пустую строку — вместо этого явно возвращаемся в G90
+		{nb}
+		call @usr_abs_inc_output
 	endif
 	if iHomingmode eq 7
 		{nb, sHomeline}
