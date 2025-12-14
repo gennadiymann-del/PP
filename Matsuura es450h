@@ -1893,11 +1893,11 @@ endp
 	if iHomingmode eq 2
 		{nb,cHomep'G28 '}
 		iAbsincmode = 91
-		change(iAbsincmode) = true
+		change(iAbsincmode) = TRUE
 		call @usr_abs_inc_output
 		{ sHomeline}
 		iAbsincmode = 90
-		change(iAbsincmode) = true
+		change(iAbsincmode) = TRUE
 		{NB, ''}
 	endif
 	if iHomingmode eq 3 or iHomingmode eq 4
@@ -1923,11 +1923,11 @@ endp
 	if iHomingmode eq 6
 		{nb,cHomep'G30 '}
 		iAbsincmode = 91
-		change(iAbsincmode) = true
+		change(iAbsincmode) = TRUE
 		call @usr_abs_inc_output
 		{ sHomeline}
 		iAbsincmode = 90
-		change(iAbsincmode) = true
+		change(iAbsincmode) = TRUE
 	endif
 	if iHomingmode eq 7
 		{nb, sHomeline}
