@@ -1886,7 +1886,9 @@ endp
 @usr_home_axis
 	; Handle output for homing the X-axis
 	local integer sav_iWorkOffset
-	sav_iWorkOffset = iWorkOffset
+	; В этом посте глобальная переменная называется iWorkoffset (маленькая 'o')
+	; Если использовать iWorkOffset, компилятор GPPL может ругаться "Invalid ASSIGNMENT".
+	sav_iWorkOffset = iWorkoffset
 	if iHomingmode eq 1
 		{nb,cHomep'G28 'sHomeline}
 	endif
@@ -1902,18 +1904,18 @@ endp
 	endif
 	if iHomingmode eq 3 or iHomingmode eq 4
 		if iWorkOffsetmode eq 1 or iWorkOffsetmode eq 3
-			iWorkOffset = 53
+			iWorkoffset = 53
 			{nb,cHomep,[cWo,iWorkoffset' ']}
 		endif
 		if iWorkOffsetmode eq 2
-			iWorkOffset = 0
+			iWorkoffset = 0
 			{nb,cHomep,[cWo,iWorkoffset' ']}
 		endif
 		call @usr_abs_inc_output
 		{ sHomeline}
-		iWorkOffset = sav_iWorkOffset
+		iWorkoffset = sav_iWorkOffset
 		if iHomingmode eq 3
-			change(iWorkOffset) = FALSE
+			change(iWorkoffset) = FALSE
 		endif
 		change(cWo) = FALSE ;!@#$%AC Fix for ChangeBit Intermittent problem
 	endif
