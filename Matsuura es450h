@@ -2020,7 +2020,8 @@ endp
 	local numeric nNewBpos
 
 	; Абсолютный угол от CAM + направление оси
-	nNewBpos = rotate_angle_y * iR1dir
+	; Инверсия знака (на этом станке знак B в CAM противоположный)
+	nNewBpos = -rotate_angle_y * iR1dir
 	nR1pos = nNewBpos
 
 	if nPR1pos ne nR1pos
