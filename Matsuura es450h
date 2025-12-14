@@ -1005,6 +1005,11 @@ endp
 	call @usr_HSM_mode
 	bfirst_rapid = true
 	iPworkoffset = iWorkoffset
+	; ---- 4x
+	; Force one B output at the start of each operation (job),
+	; but do not repeat B inside the same toolpath.
+	nPR1pos = 9999
+	; ---- 4x
     if 	bStopM00sametool eq true
         bTlchg = true
         bStopM00sametool = false
@@ -1050,11 +1055,13 @@ endp
 @usr_rapid
 	; Handle output for Rapid Move (G00)
 	; Note: XYZ not allowed together on a single line
-    if change(xpos) or change(ypos) or change(zpos) or change(apos) or change(bpos) or change(cpos)
-		call @usr_r1pos_calc
-    else
-        bSkipxyrapid = true
-    endif
+	; Always calculate B first (even when only B changes)
+	call @usr_r1pos_calc
+	if !(change(xpos) or change(ypos) or change(zpos) or change(apos) or change(bpos) or change(cpos) or change(nR1pos))
+		bSkipxyrapid = true
+	else
+		bSkipxyrapid = false
+	endif
 	if !bSkipxyrapid
 ;		if change(apos) and !change(xpos) and !change(ypos) and !change(zpos) and !change(bpos) ;Ignore apos prepositioning, handled at toolchange
 ;			skipline = false
@@ -1091,17 +1098,16 @@ endp
 ;			Rot_Clamp
 ;			Rot_Unclamp
 		endif
-		; If B changes: home axes, rotate B first, then do XY move
-		if bHomeBeforeBRotation and change(nR1pos)
-			call @usr_home_before_b_rotation
-		endif
+		; If B changes: home axes, then output ONLY B on its own line
 		if change(nR1pos)
-			{nb,cR1,nR1pos ' '}
+			if bHomeBeforeBRotation
+				call @usr_home_before_b_rotation
+			endif
+			{nl,cR1,nR1pos ' '}
 		endif
+
+		; Never output B together with XYZ
 		{nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],['X'xpos ' '],['Y'ypos ' ']}
-		if !change(nR1pos)
-			{cR1,nR1pos ' '}
-		endif
 		if !bBrake_Off
 			Rotclmpunclmp = Rot_Clamp
 			if change(Rotclmpunclmp)
@@ -1209,6 +1215,13 @@ endp
 	; ---- 4x
 	;   - Set Rotary Position
 	call @usr_r1pos_calc
+	; If B changes during feed: home + output ONLY B on its own line
+	if change(nR1pos)
+		if bHomeBeforeBRotation
+			call @usr_home_before_b_rotation
+		endif
+		{nl,cR1,nR1pos ' '}
+	endif
 	if  i4xFeedMode eq 0
 		if change(zpos)
 			feed = feed
@@ -1248,11 +1261,7 @@ endp
 	iMotionmode = 1
 	{nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
 	{['G'iFeedType' '],['D'iDiameteroffset' '],['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' '],['F'feed ' ']}
-if bSeparateBRotation and change(nR1pos)
-    {nl,cR1,nR1pos ' '}
-else
-    {cR1,nR1pos ' '}
-endif
+	; Never output B together with XYZ feed blocks
 	prevFeed = feed
 	if change(iMotionmode)
 		change(iMotionmode)     = FALSE
@@ -1673,6 +1682,13 @@ endp
 	; Handle output for drill positions
 	local integer i
 	call @usr_r1pos_calc
+	; If B changes: home + output ONLY B on its own line
+	if change(nR1pos)
+		if bHomeBeforeBRotation
+			call @usr_home_before_b_rotation
+		endif
+		{nl,cR1,nR1pos ' '}
+	endif
 	if change(ypos)
 		ypos = 0
 	endif
@@ -1687,11 +1703,7 @@ endp
 	else
 		if !first_drill then
 			{nb,['X'xpos ' '], ['Y'ypos ' '], ['Z'zpos ' ']}
-if bSeparateBRotation and change(nR1pos)
-    {nl,cR1,nR1pos ' 'cDrPts}
-else
-    {cR1,nR1pos ' 'cDrPts}
-endif
+			; Never output B together with XYZ drill blocks
 		endif
 	endif
 endp
