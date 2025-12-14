@@ -34,6 +34,7 @@
 	global string cR1 cR2 sHomestrrot nR1pos_f bpos_f ;apos_f
 	global integer iFeedType iR1posControl i4xIndexMode i4xIndexClearanceMode i4xFeedMode Rot_Clamp Rot_Unclamp Rotclmpunclmp
 	global logical bSeparateBRotation ; True = B axis always on separate line
+	global logical bHomeBeforeBRotation ; True = Home axes before any B rotation
 	; Non GPPL variables
 	num_user_procs =    1
 	remove_blanks = FALSE
@@ -160,6 +161,7 @@ endp
 	bOutputUserMessages   = true       ;true = outputs user messages (message field found in Operation - Misc parameters tab)
 	bSimpleformat         = false      ;true = Simple G/M code format for special controllers (WinCNC, Millpwr, etc)
 	bSeparateBRotation = true      ;True = B axis always on separate line
+	bHomeBeforeBRotation = true    ;True = Home Z/X/Y before every B change
 	;---------          Homing & Zero Returning axis             ---------
 	;--------- Instructions and explaination of definition below ---------
 
@@ -1004,12 +1006,6 @@ endp
 	call @usr_HSM_mode
 	bfirst_rapid = true
 	iPworkoffset = iWorkoffset
-	; ---- 4x
-	; Force B output at the start of every operation (job),
-	; even when consecutive jobs use the same B angle.
-	; This prevents “missing” B words that later look like the order changed.
-	nPR1pos = 9999
-	; ---- 4x
     if 	bStopM00sametool eq true
         bTlchg = true
         bStopM00sametool = false
@@ -1056,7 +1052,7 @@ endp
 	; Handle output for Rapid Move (G00)
 	; Note: XYZ not allowed together on a single line
     if change(xpos) or change(ypos) or change(zpos) or change(apos) or change(bpos) or change(cpos)
-	call @usr_r1pos_calc
+		call @usr_r1pos_calc
     else
         bSkipxyrapid = true
     endif
@@ -1096,11 +1092,16 @@ endp
 ;			Rot_Clamp
 ;			Rot_Unclamp
 		endif
+		; If B changes: home axes, rotate B first, then do XY move
+		if bHomeBeforeBRotation and change(nR1pos)
+			call @usr_home_before_b_rotation
+		endif
+		if change(nR1pos)
+			{nb,cR1,nR1pos ' '}
+		endif
 		{nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],['X'xpos ' '],['Y'ypos ' ']}
-		if bSeparateBRotation and change(nR1pos)
-    {nl,[cR1,nR1pos ' ']}
-		else
-    {[cR1,nR1pos ' ']}
+		if !change(nR1pos)
+			{cR1,nR1pos ' '}
 		endif
 		if !bBrake_Off
 			Rotclmpunclmp = Rot_Clamp
@@ -1249,9 +1250,9 @@ endp
 	{nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
 	{['G'iFeedType' '],['D'iDiameteroffset' '],['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' '],['F'feed ' ']}
 if bSeparateBRotation and change(nR1pos)
-    {nl,[cR1,nR1pos ' ']}
+    {nl,cR1,nR1pos ' '}
 else
-    {[cR1,nR1pos ' ']}
+    {cR1,nR1pos ' '}
 endif
 	prevFeed = feed
 	if change(iMotionmode)
@@ -1688,9 +1689,9 @@ endp
 		if !first_drill then
 			{nb,['X'xpos ' '], ['Y'ypos ' '], ['Z'zpos ' ']}
 if bSeparateBRotation and change(nR1pos)
-    {nl,[cR1,nR1pos ' ']cDrPts}
+    {nl,cR1,nR1pos ' 'cDrPts}
 else
-    {[cR1,nR1pos ' ']cDrPts}
+    {cR1,nR1pos ' 'cDrPts}
 endif
 		endif
 	endif
@@ -1937,6 +1938,18 @@ endp
 endp
 
 ;-------------------
+;
+@usr_home_before_b_rotation
+	; Home axes before rotating B
+	{nb,'G00 G53 G28 G91 Z0.'}
+	{nb,'G00 G53 G28 G91 X0.Y0'}
+	{nb,'G90'}
+	; keep internal mode consistent
+	iAbsincmode = 90
+	change(iAbsincmode) = FALSE
+endp
+
+;-------------------
 
 @usr_campart_path
 	; Uses String Functions to get the Windows Folder Path to the CAM-Part
@@ -2038,6 +2051,9 @@ endp
 	;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
 
 	call @usr_r1pos_calc
+	if bHomeBeforeBRotation and change(nR1pos)
+		call @usr_home_before_b_rotation
+	endif
 	if i4xIndexMode ne 2 ;Simple Rotation
 		if i4xIndexClearanceMode eq 0
 			if sHomestrrot ne ''
