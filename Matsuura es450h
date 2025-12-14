@@ -1103,7 +1103,7 @@ endp
 			if bHomeBeforeBRotation
 				call @usr_home_before_b_rotation
 			endif
-			{nl,cR1,nR1pos ' '}
+			{nl,'G00 'cR1,nR1pos ' '}
 		endif
 
 		; Never output B together with XYZ
@@ -1220,7 +1220,7 @@ endp
 		if bHomeBeforeBRotation
 			call @usr_home_before_b_rotation
 		endif
-		{nl,cR1,nR1pos ' '}
+		{nl,'G00 'cR1,nR1pos ' '}
 	endif
 	if  i4xFeedMode eq 0
 		if change(zpos)
@@ -1687,7 +1687,7 @@ endp
 		if bHomeBeforeBRotation
 			call @usr_home_before_b_rotation
 		endif
-		{nl,cR1,nR1pos ' '}
+		{nl,'G00 'cR1,nR1pos ' '}
 	endif
 	if change(ypos)
 		ypos = 0
