@@ -332,9 +332,9 @@ endp
     ; Handle Tool List Output at top of progam
     ; Use bTlchg to use different message for tool_change
     if tool_message == '' then
-        {nb, cCb'TOOL 'tool_number, '   DIA '(tool_offset*2),cCe }
+        {nb, cCb'TOOL 'tool_number, '   DIA '(tool_offset*2), '   OHL 'tool_outside_holder_length:'5.3',cCe }
     else
-        {nb,cCb'T'tool_number,' ' tool_message,cCe}
+        {nb,cCb'T'tool_number,' ' tool_message, '   OHL 'tool_outside_holder_length:'5.3',cCe}
         if msg_mill_tool1 ne ''
             {nb,cCb'---' msg_mill_tool1,cCe}
         endif
