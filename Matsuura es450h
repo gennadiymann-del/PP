@@ -1338,44 +1338,44 @@ endp
 	endif
 	if arc_plane eq XY then
 		if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-			{'I'xcenter ' ', 'J'ycenter ' '}
+			{'I'xcenter:xpos_f ' ', 'J'ycenter:ypos_f ' '}
 		endif
 		if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-			{'I'xcenter_rel ' ', 'J'ycenter_rel ' '}
+			{'I'xcenter_rel:xpos_f ' ', 'J'ycenter_rel:ypos_f ' '}
 		endif
 		if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
 			if arc_size >= 180 then
 				radius = -radius
 			endif
-			{'R'radius' '}
+			{'R'radius:xpos_f' '}
 		endif
 	endif
 	if arc_plane eq ZX then
 		if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-			{'I'xmcenter ' ', 'K'zmcenter ' '}
+			{'I'xmcenter:xpos_f ' ', 'K'zmcenter:zpos_f ' '}
 		endif
 		if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-			{'I'xmcenter_rel ' ', 'K'zmcenter_rel ' '}
+			{'I'xmcenter_rel:xpos_f ' ', 'K'zmcenter_rel:zpos_f ' '}
 		endif
 		if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
 			if arc_size >= 180 then
 				radius = -radius
 			endif
-			{'R'radius' '}
+			{'R'radius:xpos_f' '}
 		endif
 	endif
 	if arc_plane eq YZ then
 		if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-			{'J'ymcenter ' ', 'K'zmcenter ' '}
+			{'J'ymcenter:ypos_f ' ', 'K'zmcenter:zpos_f ' '}
 		endif
 		if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-			{'J'ymcenter_rel ' ', 'K'zmcenter_rel ' '}
+			{'J'ymcenter_rel:ypos_f ' ', 'K'zmcenter_rel:zpos_f ' '}
 		endif
 		if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
 			if arc_size >= 180 then
 				radius = -radius
 			endif
-			{'R'radius' '}
+			{'R'radius:xpos_f' '}
 		endif
 	endif
 	{['F'feed ' ']}
