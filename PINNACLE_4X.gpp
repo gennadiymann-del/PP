@@ -1,0 +1,1150 @@
+;
+; FANUC
+; -----
+;
+@init_post
+    global string tool_diameter_f comp
+    global numeric use_m0 last_xhome 
+    global numeric ch_tool ch_ang
+    global integer h_old s_old use_feed z_old arc_dir save_part_home_number  save_part_home_number_5x 
+    global logical last_is_arc  Flag_end_of_job loop_flag clamp_flag rotary_use_x first_tmatrix FIRTS_RAP_MOVE 
+    global numeric xhome_temp yhome_temp zhome_temp 
+ ;****************************************************************************
+    global numeric z_thred_start
+ ;****************************************************************************
+    GLOBAL LOGICAL main
+    ; Non GPPL variables
+    num_user_procs =    1
+    line_labels    = FALSE     ; Jump to N...
+
+    ; GPPL variables
+    pre_processor   = 'FANUC'
+    numeric_def_f   = '5.3'
+    integer_def_f   = '5.0(p)'
+    gcode_f         = '2.0(p)'
+    mcode_f         = '2.0(p)'
+    xpos_f          = '5.3'
+    ypos_f          = '5.3'
+    zpos_f          = '5.3'
+    feed_f          = '4.3(p)'
+    tool_diameter_f = '5.3/1'
+    blknum_f        = '5.0(p)'
+    blknum_gen      = FALSE
+    blknum_exist    = TRUE
+    blknum          = 100
+    blknum_delta    = 100
+    blknum_max      = 32000
+    clamp_flag      = FALSE
+    rotary_use_x    = FALSE
+    first_tmatrix   = TRUE
+    ;trace "ALL":1
+    loop_flag=0
+    
+endp
+
+;-------------------
+
+@start_of_file
+    ; before tools definition
+    {'%'}
+    {nl, 'O'program_number, ' (', g_file_name, ')'}
+    {nl, '( QUASER )'}
+    {nb,'( 'date,'  'time,' )'}
+
+    if rotate_used then
+        gcode = 69
+        {nb, 'G'gcode}
+    endif
+    if mirror_used then
+        {nb, 'G50.1 X0 Y0'}
+    endif
+    {nb, '(SUBROUTINES: O'first_proc_number, ' .. O'last_proc_number, ')'}
+   {nb,' G0 G17 G40 G80 G90 G'(53 + home_number)}
+
+
+endp
+
+;-------------------
+
+@start_program
+    ; after tools definition
+; {nb,' G0 G17 G40 G80 G90 G'(53 + home_number)}
+main = TRUE
+endp
+
+;-------------------
+
+@end_program
+     {nb,'M9'}
+     {nb, 'G91 G28 Z0.M5'}
+     {nb, 'G91 G28 Y0.'}
+             ;if x_4_home eq true
+                    {nb, 'G90'}
+                    {' G'(53+home_number)} 
+                  ;  {nb,'M44'}  
+                    {nb,'G0 A0'}
+                   ; {nb,'M43'} 
+             ;endif
+     {nb, 'M30'}
+     {nl}
+     {nl}
+     {nb,' '}
+   main = FALSE
+endp
+
+;-------------------
+
+@end_of_file
+    label = first_user_proc
+  ; if x_4_home eq true
+        CALL @home_data1
+  ; endif
+    {nl, '%'}
+endp
+
+;-------------------
+
+@relative_mode
+    gcode = 91
+    {nb, 'G'gcode, ' '}
+    skipline = FALSE
+endp
+
+;-------------------
+
+@absolute_mode
+          gcode = 90
+       if job_type eq 'thread'
+                {nb, 'G'gcode, ' '}
+        endif
+     skipline = FALSE
+endp
+
+;-------------------
+
+@machine_plane
+    if machine_plane eq XY
+ ;       gcode = 17
+    endif
+    if machine_plane eq YZ
+;        gcode = 18
+    endif
+    if machine_plane eq ZX
+ ;       gcode = 19
+    endif
+ ;   {nb, 'G'gcode}
+endp
+
+;-------------------
+
+@call_proc
+
+
+;-------------------------------------------------------------------------------
+;    if x_4_home eq true
+       if main eq true
+            if save_part_home_number <> part_home_number or save_part_home_number_5x eq 1 
+                ;{nb, 'G65P'(PROGRAM_number+POSITION)'    (CALL H'POSITION')'}
+                call @home_data
+                ;{nb'G0 G49'}               
+                ;{nb,'G5.1 Q1 R5'}                 ;{nb,'G43 H'TOOL_NUMBER,' X0 Y0 Z'tool_z_level}
+               save_part_home_number = part_home_number 
+             endif 
+        endif
+;     endif 
+;------------------------------------------------------------------------------------  
+if x5_job eq 1 or rot_axis_type eq axis4_radial
+	  save_part_home_number_5x = 1
+else
+	if x5_job eq false or rot_axis_type eq axis4_none
+	  save_part_home_number_5x = 0 
+	endif
+endif
+
+  
+    if active(parm1) then
+      {nb, '//G65 P'}
+        gcode = 65
+        {nb, 'G'gcode, ' P'label}
+    else
+        {nb, 'M98 P'label}
+      ; {nb, 'M98 P'}
+      ; {nb, 'M98 P'(label+100+PROGRAM_number)}
+    endif
+    if proc_count gt 1 then
+        {' L'proc_count}
+    endif
+    {[' ('message, ')']}
+    h_old = tool_number
+    s_old = spin
+    z_old = znext
+endp
+
+;-------------------
+
+@proc
+    {nl, 'O'label}
+  ; {nb, 'O'}
+  ; {nl, 'O'(label+100+PROGRAM_number)}
+endp
+
+;-------------------
+
+@end_proc
+    {nb, 'M99'}
+    {nl}
+    {nl}
+    {nl}
+    {nb, ' '}
+endp
+
+;----------------
+
+@loop
+    local integer var_num
+     if loop_level eq 1
+         {nb, '#600=0'}
+         {nb, '#601=0'}
+     endif
+
+    skipline = true
+;    var_num = loop_level + 600
+;    {nb, '#', var_num, ' = 0'}
+    var_num = loop_level + 20
+    {nb, '#', var_num, ' = 0'}
+    {nb, 'WHILE [#', var_num, ' LT ', loop_count, '] DO ', loop_level}
+   loop_flag=1
+endp
+
+;----------------
+
+@end_loop
+    local integer var_num
+
+    var_num = loop_level + 20
+    {nb '#', var_num, ' = #', var_num, ' + 1'}
+;    {nb 'G'home_number}
+    
+    {nb 'END ', loop_level}
+endp
+
+
+;----------------
+
+@def_tool
+{nb, '(  T'tool_number}
+{'   'tool_user_type, '  D'(2*tool_offset),'  - ',upper(tool_message)' )'}
+ {nb, 'G10 G90 L12 P', (tool_number), ' R'tool_offset}
+endp
+
+;-------------------
+
+@rapid_move
+
+if FIRTS_RAP_MOVE EQ 1
+    	{nb}
+    	gcode = 0
+    	{'G'gcode, [' X'xlpos], [' Y'ylpos]}
+    	{nb,'G0 G43 ', ' H'tool_number, ' D'tool_number , ' Z'tool_start_plane}
+    	{nb,'/M8'}
+    	;{nb,'G4 P1000'}
+	{nb,' Z'zlpos}
+	FIRTS_RAP_MOVE = 0
+else
+    {nb}
+    gcode = 0
+    if change(gcode) then
+        {'G'gcode}
+    else
+        {'  '}
+    endif
+    {[' X'xlpos], [' Y'ylpos], [' Z'zlpos]}
+endif
+endp
+
+;-------------------
+
+@line
+    {nb}
+    gcode = 1
+    if change(gcode) then
+        {'G'gcode}
+    else
+        {'  '}
+    endif
+    {[' X'xlpos], [' Y'ylpos], [' Z'zlpos]}
+      if use_feed eq 1
+        {' F'feed}
+        use_feed = 0
+      else
+        {[' F'feed]}
+      endif
+endp
+
+;-------------------
+
+@arc
+    {nb}
+    ;-- arc plane --
+
+    if arc_direction eq CCW then
+        gcode = 3
+    else         ; CW
+        gcode = 2
+    endif
+    if change(gcode) then
+        {'G'gcode}
+    else
+        {'  '}
+    endif
+    {[' X'xlpos] [' Y'ylpos] [' Z'zlpos]}
+
+    if arc_size eq 360 then
+        if arc_plane eq XY then
+            {' I'xlcenter_rel, ' J'ylcenter_rel}
+        endif
+        if arc_plane eq YZ then
+            {' J'xlcenter_rel, ' K'ylcenter_rel}
+        endif
+        if arc_plane eq ZX then
+            {' K'xlcenter_rel, ' I'ylcenter_rel}
+        endif
+    else
+        if arc_size >= 180 then
+            radius = -radius
+        endif
+        {' R'radius}
+    endif
+
+      if use_feed eq 1
+        {' F'feed}
+        use_feed = 0
+      else
+        {[' F'feed]}
+      endif
+endp
+
+;-------------------
+
+@compensation
+    if side eq COMP_LEFT then
+        gcode = 41
+    endif
+    if side eq COMP_RIGHT then
+        gcode = 42
+    endif
+    if side eq COMP_OFF then
+        gcode = 40
+    endif
+    {nb, 'G'gcode, ' '}
+    skipline = FALSE
+endp
+
+;-------------------
+
+@delay
+    gcode = 4
+    {nb 'G'gcode, ' P'delay_period:integer_def_f}
+endp
+
+;-------------------
+
+@change_ref_point
+ if loop_flag eq 1
+  
+     if ref_point_init ne true 
+           if prev_command eq '@call_proc'
+               if loop_level eq 1 
+                   if xhome ne 0
+                             {nb '#600=[#21+1]*['xhome']'}
+                   else
+                             {nb '#601=[#21+1]*['yhome']'}
+                   endif
+               else
+                   {nb '#600=[#22+1]*['xhome']'}
+               endif
+           else
+                {nb '#600=[#21+1]*['(xhome+last_xhome)']'}
+                {nb '#601=[#21+1]*['yhome']'}
+           endif
+
+         {nb, 'G52 X#600 Y#601 Z0'}
+         {nb,'G90'}
+ ;        {nb,'**********************************************8'}
+     else
+         {nb, 'G52 X0 Y0 Z0'}
+     endif
+else
+        {nb, 'G52 X'xhome,' Y'yhome,' Z'zhome}
+endif
+    last_xhome= xhome*loop_count
+endp
+
+
+;-------------------
+
+@home_number
+    skipline = TRUE
+    gcode = 53 + home_number
+    ; {nb, 'G'gcode}
+    if next_command ne '@rotary_info'
+       ; {nb,'M44'};unclamp
+       ; {nb,'G0 G90 C-5.'}
+       ; {nb,'G0 G90 C'rotate_angle_x}
+       ; {nb,'M43'};clamp
+    endif 
+endp
+
+;-------------------
+
+@rotate
+    ; Not exist in FANUC 6M
+    if rotate_cancel then
+        gcode = 69
+        {nb, 'G'gcode}
+    else
+        gcode = 68
+        {nb, 'G'gcode, ' X0 Y0 G91 R'angle}
+        {nb, 'G90'}
+    endif
+endp
+
+;-------------------
+
+@fourth_axis                 
+   if rot_axis_coord ne axis4_cartesian
+    ; {nb, 'M44'}
+   endif
+   gcode = 0
+   {nb, 'G'gcode, ' A'(first_axis_angle)}
+   ;{nb, 'G'gcode, ' A'angle}
+   if rot_axis_coord ne axis4_cartesian
+    ;  {nb, 'M43'}
+   endif 
+endp
+
+;-------------------
+
+@change_tool
+  
+    local logical save_blknum_gen
+   skipline =true
+
+;   label = first_user_proc
+;   save_blknum_gen = blknum_gen
+     {nb, 'M9'}
+     {nb, 'G91 G28 Z0 M5'}
+     {nb, 'M01'} 
+     {nb, 'N'tool_number,' T'tool_number,' M6'}
+     {'  ( 'tool_user_type, '  D'(2*tool_offset),'  - ',upper(tool_message)' )'}
+     {nb,' T'next_tool_number}
+
+     call @start_tool
+         
+             call @home_data
+             call @home_data1             
+             save_part_home_number = part_home_number
+     {nb,'G90'}
+
+    gcode = 43
+    skipline = FALSE
+    ;tool_direction = CCW
+    ;call @start_tool
+    ;{[' Z'zlnext]}
+    blknum_gen = false
+    skipline = TRUE
+
+ 
+    use_m0 = 0
+    ch_tool = 1
+endp
+
+;-------------------
+
+@message
+if left(message,4)ne '----'
+    {nb, '(', message, ')'}
+endif
+endp
+
+;-------------------
+
+@drill
+      ;if drill_type eq helicoil
+	       ;call @helicoil
+      ;else
+	   call @simple_drill
+      ; endif
+endp
+;-------------------
+@simple_drill
+   {nb,'G8 P0'}
+    call @rapid_move
+    if drill_type eq tapping then
+     
+        gcode = 95
+      {nb, 'G'gcode, ' '}
+    endif
+
+    gcode = 98
+    {nb, 'G'gcode, ' '}
+    if drill_type eq drilling then
+        gcode = 81
+    endif
+    if drill_type eq f_drill then
+        gcode = 82
+    endif
+    if drill_type eq peck then
+        gcode = 83
+    endif
+    if drill_type eq tapping then
+        gcode = 84
+     {nb,'M29 S'spin:integer_def_f}
+    endif
+    if drill_type eq boring then
+        gcode = 85
+    endif
+    if drill_type eq r_boring then
+        gcode = 86
+    endif
+    if drill_type eq f_boring then
+        gcode = 89
+    endif
+    {NB,'G'gcode, ' Z'drill_lower_zl, ' R'drill_upper_zl}
+        if drill_type eq peck  
+              {' Q'down_step} 
+        endif
+
+    if drill_type eq f_drill
+        {' P'delay:integer_def_f}
+    endif
+      if drill_type eq tapping then
+            {' F'(feed/spin):xpos_f}
+      else
+            {' F'feed:feed_f}
+      endif
+
+
+endp
+
+;-------------------
+
+@drill_point
+   
+               if not first_drill then
+                  ;if drill_type eq helicoil
+	          ;   call @helicoil
+                  ;else
+                      {nb, '   ', [' X'xlpos], [' Y'ylpos], [' Z'zlpos]}
+                  ;endif
+               endif
+endp
+
+;-------------------
+@helicoil
+;     local integer num_step i2
+;     local numeric xpos1 ypos1 xpos_out ypos_out s_step1 sem_fin1  s_xpos s_ypos s_zpos s_feed 
+;     local numeric radius_ang_x radius_ang_y
+;     local logical flag_in
+;     local string comp_dir1
+;
+;
+;     s_xpos = xpos
+;     s_ypos = ypos
+;     s_zpos = zpos
+;     s_feed = feed
+;
+;    ;----- checking if or out -----------
+;	  if inn eq 1
+;		flag_in = true
+;	  ELSE
+;		flag_in = false
+;	  endif
+;    ;----- checking if or out -----------
+;
+;	   {nb,'G17'}
+;
+;   ;----- first moovement form in or out -------
+;	  if flag_in eq true
+; 	       {nb,'G0'[' X'xpos],[' Y'ypos],' Z'drill_clearance_z}
+;	       xpos = s_xpos
+;	       ypos = s_ypos
+;	       zpos = drill_clearance_z
+; 	       call @rapid_move
+;	  else
+;	       {nb,'G0 X'(s_xpos+diameter/2+tool_diameter+2), ' Y's_ypos, ' Z'drill_clearance_z}
+;	       xpos = (s_xpos+diameter/2+tool_diameter+2)
+;	       ypos = s_ypos
+;	       zpos = drill_clearance_z
+; 	       call @rapid_move
+;	  endif
+;    ;----- first moovement from in or out -------
+;
+; 	  {nb,'G0 Z'drill_upper_z}
+;	  change(xpos) = false
+;	  change(ypos) = false
+;	  zpos = drill_clearance_z
+;	  call @rapid_move
+;    ;---- avoid division by 0 --------
+;	  if s_step == 0
+;	       if sem_fin == 0
+;		    sem_fin1 = 1
+;		    s_step1 = 1
+;		else
+;		    sem_fin1 = sem_fin
+;		    s_step1 = sem_fin1 / 2
+;		endif
+;	  else
+;		sem_fin1 = sem_fin
+;		s_step1 = s_step
+;	  endif
+;    ;---- avoid division by 0 --------
+;
+;    ;---- calculating the number of steps --------
+;
+;	  if frac(abs(sem_fin1 / s_step1)) > 0
+;	      num_step = abs(sem_fin1 / s_step1 + 1)
+;	  else
+;	      num_step = abs(sem_fin1 / s_step1)
+;	  endif
+;
+;    ;---- calculating the number of steps --------
+;	  local numeric z_thred_start
+;	  if d_step > 0
+;	      z_thred_start = drill_lower_z
+;	  else
+;	      z_thred_start = drill_lower_z - (d_step * PITCH)
+;	  endiF
+;
+;
+;
+;	  while num_step >= 1
+;	       change(xpos) = false
+;	       change(ypos) = false
+;	       zpos = z_thred_start
+;	       call @line
+; 	       {nb,'G1 Z'drill_lower_z ' F'feed}
+;
+;    ; --- set the variables for in or out thred -----
+;
+;
+;
+;	      if flag_in eq true
+;		  IF LEFT_THRED <> 0
+;		      if d_step > 0
+;			   side = COMP_RIGHT
+;			   comp = 'RR'
+;			   arc_dir  =  0
+;		       else
+;			   side = COMP_LEFT
+;			   comp = 'RL'
+;			   arc_dir  = 1
+;		       endiF
+;		  else
+;		      if d_step > 0
+;			   side = COMP_LEFT
+;			   comp = 'RL'
+;			   arc_dir  =  1
+;		       else
+;			   side = COMP_RIGHT
+;			   comp = 'RR'
+;			   arc_dir  = 0
+;		       endiF
+;		  ENDIF
+;		  xpos_out = s_xpos
+;		  radius = diameter/2 -( s_step * (num_step - 1) )
+;                  radius_ang_x = radius*(cos(start_ang))
+;                 ; {nb,'radius_angxxxxxxxxxxxxx=============='radius_ang_x}
+;                  radius_ang_y = radius*(sin(start_ang)) 
+;                ; {nb,'radius_angyyyyyyyyyyyy=============='radius_ang_y}
+;		 ; xpos1 = (radius + s_xpos)
+;                 xpos1 = (radius_ang_x + s_xpos)
+;                  ypos1 = (radius_ang_y + s_ypos)
+;                ; xcenter_rel = -radius
+;                  xcenter_rel =(s_xpos-xpos1)
+;                 ;  {nb,'xcenter_rel=============='xcenter_rel}
+;                  ycenter_rel =(s_ypos-ypos1)
+;                 ; {nb,'ycenter_rel=============='ycenter_rel}
+;	      else
+;		  IF LEFT_THRED <> 0
+;		      if d_step > 0
+;			   side = COMP_LEFT
+;			   comp = 'RL'
+;			   arc_dir  = 0
+;		       else
+;			   side = COMP_RIGHT
+;			   comp = 'RR'
+;			   arc_dir  =  1
+;		       endiF
+;		  else
+;		      if d_step > 0
+;			   side = COMP_RIGHT
+;			   comp = 'RR'
+;			   arc_dir  =  1
+;		       else
+;			   side = COMP_LEFT
+;			   comp = 'RL'
+;			   arc_dir  = 0
+;		       endiF
+;		  ENDIF
+;		   xpos_out = (s_xpos+diameter/2+tool_diameter+2)
+;		   radius = diameter/2 +( s_step * (num_step - 1) )
+;                   radius_ang_x = radius*(cos(start_ang))
+;                  radius_ang_y = radius*(sin(start_ang)) 
+;                   xpos1 = (radius_ang_x + s_xpos)
+;                   ypos1 = (radius_ang_y + s_ypos) 
+;		 ; xpos1 = (radius + s_xpos)
+;                 ; xcenter_rel = -radius
+;                   xcenter_rel =(s_xpos-xpos1)
+;                   ycenter_rel =(s_ypos-ypos1)
+;	       endif
+;
+;    ; --- set the variables for in or out thred -----
+;	       call @compensation
+;	       change(ypos) = true
+;	       change(zpos) = false
+;	       xpos = xpos1
+;               ypos = ypos1
+;                call @line
+;	       {nb,'G43 X'xpos1:xpos_f}
+; 	       {nb,'G'comp_dir1}
+;	       {nb,'G'gcode ' X'xpos1 }
+;
+;
+;
+;
+;
+; 	      start_angle = 0
+;	      arc_size = -(ABS(360 * d_step))
+;	      arc_size = 360 * d_step
+;	      depth =  1
+;             
+;	      xpos = xpos1
+;	      ypos = s_ypos
+;              ypos = ypos1
+;                i2 = 1
+;              
+;               while i2 <= ABS(d_step)
+;                  depth = i2 * pitch
+;                  ;call @halical_arc              
+;                  i2 = i2 + 1
+;               endw
+;
+;
+; 	       {' I'xpos,' J'ypos,' B='(360*d_step),' K'pitch}
+;	      side = COMP_OFF
+; 	      call @compensation
+; 	      {nb,'G40'}
+;	      change(zpos) = false
+;	      xpos = xpos_out
+;	      ypos = s_ypos
+;	      call @line
+; 	      {nb,'G1 X'xpos_out:xpos_f,' Y'ypos}
+;	      s_step1 = s_step1 + s_step1
+;	      num_step = num_step-1
+;	  endw
+;	  change(ypos) = false
+;	  change(xpos) = false
+;	  zpos = drill_clearance_z
+;	  call @rapid_move
+;	   {nb,'G0 Z'drill_clearance_z}
+;	   {nl}
+endp
+;------------------------------------------------------------------------
+
+@halical_arc
+;        local numeric z_thred_start
+;
+;     {nb,'CC X'XPOS ' Y'YPOS }
+;     {nb,'LP PR'radius:xpos_f ' PA'start_angle:xpos_f ' ' comp ' F'feed_rate:feed_f}
+;     {nb,'CP IPA'arc_size:xpos_f ' IZ'depth:xpos_f }
+;
+;     if arc_dir eq 0
+;          gcode = 02
+;    else
+; ;         gcode = 03
+;     endif
+;      {nb, ['G'gcode],[' X'xpos] [' Y'ypos]' I'xcenter_rel, ' J'ycenter_rel, ' Z'(z_thred_start+depth)}
+;     {' ' comp ' F'feed_rate:feed_f}
+;
+endp
+
+;-------------------
+
+@mirror
+
+     if mirror_type eq MIRROR_OFF then
+           {nb, 'G50.1 X0 Y0'}
+     else
+           {nb, 'G51.1 '}
+     if mirror_type eq MIRROR_X then
+           {'X1 Y0'}
+     endif
+     if mirror_type eq MIRROR_Y then
+           {'X0 Y1'}
+     endif
+     if mirror_type eq MIRROR_XY then
+           {'X1 Y1'}
+      endif
+   endif
+endp
+
+;-------------------
+
+
+
+@end_drill    
+  gcode = 80
+    {nb, 'G'gcode}
+   if drill_type eq tapping then
+        gcode = 94
+       {nb, 'G'gcode, ' '}
+    endif
+endp
+
+;-------------------
+
+@halt_program
+    {' M0'}
+endp
+
+;--------------------
+
+@round_comp
+    ; NOP
+endp
+
+;--------------------
+
+@start_of_job
+           if save_part_home_number <> part_home_number
+             call @home_data
+             call @home_data1             
+             save_part_home_number = part_home_number
+           endif                                                                                                       
+
+  FIRTS_RAP_MOVE = 1 
+  Flag_end_of_job = false
+endp
+
+;--------------------
+
+@end_of_job
+    IF X5_JOB EQ TRUE
+    {NB,'M10'}
+    ENDIF
+    Flag_end_of_job = true
+    rotary_use_x = FALSE                                
+    {nb,'G8 P0'}                                                                                         
+endp
+
+;--------------------
+
+@assign_axis
+    ;   TBD
+endp
+
+;     =======================
+;     USER DEFINED PROCEDURES
+;     =======================
+
+@call_simple_proc
+    active(message) = FALSE
+    active(parm1)   = true
+    active(parm2)   = FALSE
+    active(parm3)   = FALSE
+    proc_count      = 1
+    call @call_proc
+endp
+
+;-------------------
+
+@start_tool
+    if tool_direction eq CW then
+        mcode = 3
+    else              ;  CCW
+        mcode = 4
+    endif
+    {nb,' S'spin:integer_def_f, ' M'mcode}
+endp
+;-------------------
+
+@m_feed_spin
+     if tool_direction eq CW
+         mcode = 3
+     else              ;  CW
+         mcode = 4
+     endif
+;   if change(spin)
+;    {nb,'S'spin:integer_def_f, ' M'mcode}
+;   endif
+     if  Flag_end_of_job <> true	
+         {nb,[' S'spin:integer_def_f,' M'MCODE]}
+     endif
+    use_feed = 1
+
+ endp
+
+;-------------------
+
+@stop_tool
+    {nb ' M5'}
+endp
+@line_on
+endp
+
+@end_job_procs
+endp
+
+@line_4x
+;    {nb}
+;    gcode = 1
+;    if change(gcode) then
+;        {'G'gcode}
+;    else
+;        {'  '}
+;    endif
+;    {[' X'xpos], [' Y'ypos], [' Z'zpos], [' A'apos]}
+;    {[' F'feed]}
+endp
+
+@move_4x
+;    if clamp_flag eq TRUE
+;       {nb,'M44'};UNCLAMP
+;      clamp_flag = FALSE
+;    endif
+;    {nb}
+;    gcode = 0
+;    if change(gcode) then
+;        {'G'gcode}
+;    else
+;        {'  '}
+;    endif
+;    {[' X'xpos], [' Y'ypos], [' Z'zpos], [' A'apos]}
+endp
+
+@line_5x
+    {nb}
+    gcode = 1
+    if change(gcode) then
+        {'G'gcode}
+    else
+        {'  '}
+    endif
+    {[' X'xmpos], [' Y'ympos], [' Z'zmpos], [' A'apos]}
+    {[' F'feed]}
+endp
+
+@move_5x
+
+IF FIRTS_RAP_MOVE EQ 1
+    {nb, 'G58'}
+    {NB,'M11'}
+    {nb}
+    gcode = 0
+    ;if clamp_flag eq TRUE
+    ; {nb,'M44'};UNCLAMP
+       clamp_flag = FALSE
+    ;endif
+    {nb,'G'gcode, [' X'xmpos], [' Y'ympos],[' A'apos]}
+    {nb,'G0 G43 ', ' H'tool_number, ' D'tool_number ,[' Z'zmpos]}
+    
+FIRTS_RAP_MOVE = 0
+else
+   ;if clamp_flag eq TRUE
+   ;  {nb,'M44'};UNCLAMP
+   ;    clamp_flag = FALSE
+   ; endif
+    {nb}
+    gcode = 0
+   if change(gcode) then
+        {'G'gcode}
+    else
+        {'  '}
+    endif
+    {[' X'xmpos], [' Y'ympos], [' Z'zmpos], [' A'apos]}
+endif
+endp
+
+
+@drill4x_pnt
+endp
+
+@rotary_info
+  rotary_use_x = TRUE
+endp
+
+@chng_tool_cnext
+endp
+
+@init_cpos
+endp
+
+@move4x_dir
+endp
+
+@line4x_dir
+endp
+
+@move4x_polar
+endp
+
+@line4x_polar
+endp
+
+@arc4x_polar
+endp
+
+@move4x_cartesian
+;    if clamp_flag eq TRUE
+;       {nb,'M44'};UNCLAMP
+;       clamp_flag = FALSE
+;    endif
+;    {nb}
+;    gcode = 0
+;    if change(gcode) then
+;        {'G'gcode}
+;    else
+;        {'  '}
+;    endif
+;    {[' X'xpos], [' Y'ypos], [' Z'zpos], [' C'cpos]}
+endp
+
+@line4x_cartesian
+;    {nb}
+;    gcode = 1
+;    if change(gcode) then
+;        {'G'gcode}
+;    else
+;        {'  '}
+;    endif
+;   {[' X'xpos], [' Y'ypos], [' Z'zpos], [' C'cpos]}
+;    {[' F'feed]}
+endp
+
+@arc4x_cartesian
+;    {nb}
+;    ;-- arc plane --
+;
+;    if arc_direction eq CCW then
+;        gcode = 3
+;    else         ; CW
+;        gcode = 2
+;    endif
+;    if change(gcode) then
+;        {'G'gcode}
+;   else
+;        {'  '}
+;    endif
+;    {[' X'xpos] [' Y'ypos] [' Z'zpos]}
+;
+;    if arc_size eq 360 then
+;        if arc_plane eq XY then
+;            {' I'xcenter_rel, ' J'ycenter_rel}
+;        endif
+;        if arc_plane eq YZ then
+;            {' J'xcenter_rel, ' K'ycenter_rel}
+;        endif
+;        if arc_plane eq ZX then
+;            {' K'xcenter_rel, ' I'ycenter_rel}
+;        endif
+;    else
+;        if arc_size >= 180 then
+;            radius = -radius
+;        endif
+;        {' R'radius}
+;    endif
+;    {[' C'cpos]}
+;      if use_feed eq 1
+;        {' F'feed}
+;        use_feed = 0
+;      else
+;        {[' F'feed]}
+;      endif
+endp
+
+@drill4x_polar
+endp
+
+@drill4x_cartesian
+endp
+
+@call_prms
+endp
+@plane_data
+	
+endp
+@home_data 
+               ;{nb, 'G65 P'(PROGRAM_number+999)' X'shift_x ' Y'shift_y ' Z'shift_z ' B'first_axis_angle:xpos_f,' A'home_number:xpos_f ' C0 D0 E0 ( C=TIKUN_X D=TIKUN_Y E=TIKUN_Z HOME ' part_home_number ' B =  'angle_4x_around_x ' )' }
+               {NB,'#24=',shift_x:xpos_f} 
+               {NB,'#25=',shift_y:xpos_f}
+               {NB,'#26=',shift_z:xpos_f}
+               {NB,'#2=',first_axis_angle:xpos_f}
+               {NB,'#1=',home_number:xpos_f}
+               {NB,'#3=0'} 
+               {NB,'#7=0'}
+               {NB,'#8=0'}
+        ;endif
+       
+endp
+
+@home_data1
+                   {nb, 'G28 G91 G0 Z0.'}
+                 
+                  ; {nb,'#5302= -248.12'}
+                  ; {nb,'#5303= -480.961'}
+              
+                      
+                   {nb,'#5321= [#[5201 +20*#1] + #24]'} ; g59 x
+                   {nb,'#5322= [#[5202 +20*#1]+ #25]'} ; g59 y 
+                   {nb,'#5323= [#[5203 +20*#1] + #26]'} ; g59 z
+                   {nb,'#5324= #[5204 +20*#1] '} ; g59 B
+
+                   
+                   {nb,'#140= [#5321 - #5301]'} ; g59 x - g58 x
+                   {nb,'#141= [#5322 - #5302]'} ; g59 y - g58 y
+                   {nb,'#142= [#5323 - #5303]'} ; g59 z - g58 z
+
+                    {nb,'#143 = [[#141*COS[#2]] - [#142*SIN[#2]]]'} 
+                    {nb,'#144 = [[#141*SIN[#2]] + [#142*COS[#2]]]'}
+                    {nb,'#5321 = #5301 + #140 + #3'};g59xnew
+                    {nb,'#5322 = #5302 + #143 + #7'};g59ynew
+                    {nb,'#5323 = #5303 + #144 + #8'};g59znew
+                    
+               ;     {nb,'G5.1 Q1'}
+                    {nb, 'G90 G59'} 
+               ;     {nb,'M44'}
+                    
+                    {nb,'G0 A#2'}
+                    {nb,'G0 G91 A-5.'}
+                    {nb,'G0 G91 A5.'}
+                    {NB,'G90'}
+               ;     {nb,'M43'} 
+                    
+
+                ;    {nb,'G08 P1'}
+ 
+                ;    {nb,'G0 X0 Y0'} 
+                ;    {nb,' G0 G43 H#20 Z#112'}  
+endp
+
+@tool_path_info
+endp
+
+@tmatrix
+   ;if rotary_use_x eq FALSE
+    ;  if main eq TRUE
+    ;    skipline = TRUE
+    ;    {nb,'M44'};unclamp
+    ;    {nb,'G0 G90 C-5.'}
+    ;    {nb,'G0 G90 C'rotate_angle_x}
+    ;    {nb,'M43'};clamp
+    ;    first_tmatrix = FALSE
+    ;  endif
+   ;endif
+endp
+
+
+
+
+
