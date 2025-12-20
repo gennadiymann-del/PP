@@ -24,6 +24,7 @@
 	global integer iDiametercomp iDrillmode iTcnumber iNumpecks iPworkoffset iSpindleDir
 	global integer iSlength_g_file_name iSlength_full_g_file_name iSlengthcampartpath iDiameteroffset iArcmode iG84feed
 	global integer iHomingmode iWorkOffsetmode iProgendmode iG187_P_gpp iSplit_ProgName_Num iNumSeparationLines iOperationMessage ihome_number iLhome_number
+	global integer iG541CalcP
 	global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
 	global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
 	global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
@@ -188,6 +189,9 @@ endp
 	i4xIndexClearanceMode = 1         ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane 3 = none)
 	i4xFeedMode           = 0         ;4x-Simultanious control (0=Programed feedRate, 1=Inverse Time FeedRate, 2=Deg. per Minute)
 	bSeparateBRotation = true      ;True = B axis always on separate line
+	; Trig Macro output work offset (controller supports G54.1 Pxx, not G112)
+	; P=3 corresponds to #7041..#7046 (since P1=#7001.., P2=#7021.., P3=#7041..)
+	iG541CalcP            = 3
 	; ---- 4x
 
 endp
@@ -593,6 +597,13 @@ endp
 
 @home_number
 	; Handle setting WorkOffset Gcode
+	; Ensure default Work Offset prefix matches mode
+	if iWorkOffsetmode eq 1
+		cWo = 'G'
+	endif
+	if iWorkOffsetmode eq 3
+		cWo = 'G54.1 P'
+	endif
 	if home_number eq 20
 		ihome_number = iLhome_number
 	else
@@ -2066,7 +2077,10 @@ endp
 		endif
 		call @usr_trig_macro_call
 		iMotionmode = 0
-		iWorkoffset = 112
+		; Switch to calculated offset in G54.1 P(iG541CalcP)
+		cWo = 'G54.1 P'
+		iWorkoffset = iG541CalcP
+		change(iWorkoffset) = true
 	endif
 endp
 
@@ -2126,7 +2140,8 @@ endp
 @usr_trig_macro_call
 	; Handle SubProgram call to Trig_Macro
 
-	{nb, 'G65P777 X'shift_x ' Y'shift_y ' Z'shift_z ' C'home_number:'5.3' ' A'bpos:'5.3'  ' I0 J0 K0 '}
+	; Pass target G54.1 P number in D (#7)
+	{nb, 'G65P777 X'shift_x ' Y'shift_y ' Z'shift_z ' C'home_number:'5.3' ' A'bpos:'5.3' ' D'iG541CalcP:'5.0'  ' I0 J0 K0 '}
 	;{nl,'G65P777 X'shift_x ' Y'shift_y ' Z'shift_z ' C'home_number '. A'nT1pos:'5.3' ' B'bpos:'5.3'  ' I0 J0 K0'}
 
 endp
@@ -2135,17 +2150,21 @@ endp
 	; Handle Trig_Macro output (Subprogram)
 	{nl}
 	{nl, 'O777'}
-	;Copies Work Offset(i.e. G54) to G112 to use for Calculations
+	;Copies Work Offset(i.e. G54..G59) into target G54.1 P#7 (passed in D)
+	; Fanuc mapping (common): G54.1 P1 => #7001.., P2 => #7021.., P3 => #7041.., etc.
+	; Base address for target: #100 = 7000 + 20*(#7-1)
 	{nb,'G103 P1'}
-	{nb,'#7041= [#[5201 + 20 * #3] + #24]'} ; G112 x
+	{nb,'#100 = 7000 + 20*(#7-1)'}
 	{nb,'M01'}
-	{nb,'#7042= [#[5202 + 20 * #3]+ #25]'} ; G112 y
+	{nb,'#[#100+1]= [#[5201 + 20 * #3] + #24]'} ; target X
 	{nb,'M01'}
-	{nb,'#7043= [#[5203 + 20 * #3] + #26]'} ; G112 z
+	{nb,'#[#100+2]= [#[5202 + 20 * #3] + #25]'} ; target Y
 	{nb,'M01'}
-	{nb,'#7044= [#[5204 + 20 * #3]]'} ; G112 A
+	{nb,'#[#100+3]= [#[5203 + 20 * #3] + #26]'} ; target Z
 	{nb,'M01'}
-	{nb,'#7045= [#[5205 + 20 * #3]]'} ; G112 B
+	{nb,'#[#100+4]= [#[5204 + 20 * #3]]'} ; target A
+	{nb,'M01'}
+	{nb,'#[#100+5]= [#[5205 + 20 * #3]]'} ; target B
 	{nb,'M01'} ;Stop added For HS-1RP to not read ahead
 
 	;Variables 7xxx are G1xx additional work offsets. Puts work offsets in a variable
@@ -2160,9 +2179,9 @@ endp
 	; IMPORTANT: Machine kinematics: B rotates around Y axis
 	; For rotation around Y, X/Z rotate; Y stays the same.
 	;Delta Changes In X & Z- Leg of triangle used to calculate new X & Z
-	{nb,'#141= [#7041 - #7001]'} ; delta x (from rotation center X)
+	{nb,'#141= [[#[#100+1]] - #7001]'} ; delta x (from rotation center X)
 	{nb,'M01'}
-	{nb,'#142= [#7043 - #7003]'} ; delta z (from rotation center Z)
+	{nb,'#142= [[#[#100+3]] - #7003]'} ; delta z (from rotation center Z)
 	{nb,'M01'}
 
 	;Trig. Formula for rotation about Y (XZ plane)
@@ -2177,11 +2196,11 @@ endp
 	{nb}
 
 	;New Calculated Home Position- Uses shifts, rotation centers, and calculated change in X & Z
-	{nb,'#7041 = #7001 + #148 + #4'} ; center X + new X + user shift = new X in G112
+	{nb,'#[#100+1] = #7001 + #148 + #4'} ; new X in target G54.1 P
 	{nb,'M01'}
-	{nb,'#7042 = #7042 + #5'}        ; Y unchanged by B@Y rotation (only user shift)
+	{nb,'#[#100+2] = [#[#100+2]] + #5'}  ; Y unchanged by B@Y rotation (only user shift)
 	{nb,'M01'}
-	{nb,'#7043 = #7003 + #149 + #6'} ; center Z + new Z + user shift = new Z in G112
+	{nb,'#[#100+3] = #7003 + #149 + #6'} ; new Z in target G54.1 P
 	{nb,'M01'}
 	{nb,'G103'}
 	;{nb,'G112'}
